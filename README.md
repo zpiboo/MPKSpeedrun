@@ -13,8 +13,7 @@ values that you can insert in MPK2 labels (e.g., `Run Ticks: {runTicks}`).
 MPKSpeedrun introduces two infoVars that keep track of your run ticks between jumps:
 - _`groundtime`_ just counts ticks you spend on ground
 - _`runTicks`_ additionally makes sure you're moving: it doesn't count up when you press no WASD
-  key, and matches tap durations as well as HH timings (note that the latter is not true in 1.8.9 and 1.12.2,
-  due to a minor inconsistency in MPK2's input registration; this is a bug and should hopefully be fixed soon enough).
+  key, and matches tap durations as well as HH timings
 
 ### Maps system
 #### Timer
