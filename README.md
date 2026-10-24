@@ -42,6 +42,7 @@ Each one has the following inputs:
 - A "Use Landing Position" checkbox. If checked, it will use your horizontal position from a tick earlier. When you land, this is the point where you hit the ground.
 
   ![collision order diagram: the player moves down first, then horizontally](/assets/collision_order_diagram.png)
+- A "Count this tick" checkbox. If checked, the trigger tick for this zone will be counted in your time.
 
 The current map data is exposed in the _`currentMap`_ infoVar.
 
