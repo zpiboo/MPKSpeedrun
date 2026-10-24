@@ -10,8 +10,13 @@ public class StartZone extends TriggerZone {
     private long lastTriggerTime = -1;
 
     @Override
-    public boolean tick(Player p, Speedrunner s) {
-        boolean shouldTrigger = super.tick(p, s);
+    public boolean countTriggerTickDefault() {
+        return true;
+    }
+
+    @Override
+    public void tick(Player p, Speedrunner s) {
+        super.tick(p, s);
 
         if (lastTriggerState == TriggerState.GROUNDED) {
             if (!p.isOnGround()) {
@@ -25,8 +30,6 @@ public class StartZone extends TriggerZone {
             }
             getLastTrigger().setTickIndicator((int) (lastTriggerTime - API.tickTime));  // negative
         }
-
-        return shouldTrigger;
     }
 
     @Override

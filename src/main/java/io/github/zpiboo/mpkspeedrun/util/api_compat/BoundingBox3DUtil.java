@@ -2,6 +2,7 @@ package io.github.zpiboo.mpkspeedrun.util.api_compat;
 
 import io.github.kurrycat.mpkmod.util.BoundingBox3D;
 import io.github.kurrycat.mpkmod.util.Vector3D;
+import io.github.zpiboo.mpkspeedrun.util.misc.XZGeometry;
 
 public class BoundingBox3DUtil {
     public static boolean contains(BoundingBox3D bb, Vector3D vec) {
@@ -21,64 +22,29 @@ public class BoundingBox3DUtil {
                 bb1.minZ() <= bb2.maxZ();
     }
 
-    public static double slabMethod(Vector3D start, Vector3D end, BoundingBox3D box) {
-        double[] startArr = new double[3];
-        double[] endArr = new double[3];
-        double[] direction = new double[3];
-        double[] boxMin = new double[3];
-        double[] boxMax = new double[3];
-
-        startArr[0] = start.getX();
-        startArr[1] = start.getY();
-        startArr[2] = start.getZ();
-        endArr[0] = end.getX();
-        endArr[1] = end.getY();
-        endArr[2] = end.getZ();
-
-        boxMin[0] = box.minX();
-        boxMin[1] = box.minY();
-        boxMin[2] = box.minZ();
-        boxMax[0] = box.maxX();
-        boxMax[1] = box.maxY();
-        boxMax[2] = box.maxZ();
-
-        for (int i = 0; i < 3; i++) {
-            direction[i] = endArr[i] - startArr[i];
+    public static double posSubtick(Vector3D start, Vector3D end, BoundingBox3D box) {
+        // Start pos is above or below
+        if (box.minX() < start.getX() && start.getX() < box.maxX() &&
+                box.minZ() < start.getZ() && start.getZ() < box.maxZ() &&
+                (start.getY() < box.minY() || box.maxY() < start.getY())) {
+            return 0.0;
         }
 
-        double tMin = 0.0;
-        double tMax = 1.0;
+        return XZGeometry.slabMethod(
+                XZGeometry.xzVec(start),
+                XZGeometry.xzVec(end),
+                XZGeometry.xzBox(box)
+        );
+    }
 
-        for (int i = 0; i < 3; i++) {
-            double boxMinCoord = boxMin[i];
-            double boxMaxCoord = boxMax[i];
-
-            if (Math.abs(direction[i]) == 0) {
-                // Line is parallel to edge
-                if (startArr[i] < boxMinCoord || startArr[i] > boxMaxCoord) {
-                    return 1.0F;
-                }
-            } else {
-                double t1 = (boxMinCoord - startArr[i]) / direction[i];
-                double t2 = (boxMaxCoord - startArr[i]) / direction[i];
-
-                if (t1 > t2) {
-                    double temp = t1;
-                    t1 = t2;
-                    t2 = temp;
-                }
-
-                tMin = Math.max(tMin, t1);
-                tMax = Math.min(tMax, t2);
-
-                if (tMin > tMax) { return 1.0F; }
-            }
-        }
-
-        if (tMax < 0 || tMin > 1) {
-            return 1.0F;
-        }
-
-        return Math.max(tMin, 0.0);
+    public static double boxSubtick(BoundingBox3D start, BoundingBox3D end, BoundingBox3D box) {
+        return posSubtick(
+                new Vector3D(start.midX(), start.midY(), start.midZ()),
+                new Vector3D(end.midX(), end.midY(), end.midZ()),
+                new BoundingBox3D(
+                        new Vector3D(start.minX() - 0.3F, start.minY(), start.minZ() - 0.3F),
+                        new Vector3D(start.maxX() + 0.3F, start.maxY(), start.maxZ() + 0.3F)
+                )
+        );
     }
 }

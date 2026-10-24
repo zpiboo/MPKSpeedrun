@@ -1,11 +1,11 @@
 package io.github.zpiboo.mpkspeedrun;
 
 import io.github.kurrycat.mpkmod.compatibility.MCClasses.Player;
-import io.github.kurrycat.mpkmod.events.OnTickStartEvent;
+import io.github.kurrycat.mpkmod.events.OnTickEndEvent;
 import io.github.kurrycat.mpkmod.gui.infovars.InfoString;
+import io.github.kurrycat.mpkmod.util.Vector2D;
 import io.github.zpiboo.mpkspeedrun.pkmaps.core.PkMap;
 import io.github.zpiboo.mpkspeedrun.pkmaps.core.TriggerZone;
-import io.github.zpiboo.mpkspeedrun.util.misc.KeyBindings;
 
 public class Speedrunner {
     @InfoString.AccessInstance
@@ -54,12 +54,13 @@ public class Speedrunner {
     }
     public void setCurrentMap(PkMap map) {
         currentMap = map;
+        lastTrigger = new TriggerZone.TriggerData();
         timer.reset();
         timer.setEnabled(false);
     }
 
 
-    public void onTickStart(@SuppressWarnings("unused") OnTickStartEvent evt) {
+    public void onTickEnd(@SuppressWarnings("unused") OnTickEndEvent evt) {
         Player currPlayer = Player.getLatest();
         if (currPlayer == null) return;
 
@@ -69,14 +70,8 @@ public class Speedrunner {
         Player prevPlayer = currPlayer.getPrevious();
         if (prevPlayer == null) return;
 
-        int inputX = 0, inputY = 0;
-        if (KeyBindings.KEY_FORWARD.isKeyDown()) inputY = 1;
-        if (KeyBindings.KEY_LEFT.isKeyDown()) inputX = 1;
-        if (KeyBindings.KEY_BACK.isKeyDown()) inputY -= 1;
-        if (KeyBindings.KEY_RIGHT.isKeyDown()) inputX -= 1;
-
         boolean wasMoving = isMoving;
-        isMoving = inputX != 0 || inputY != 0;
+        isMoving = !currPlayer.keyInput.getMovementVector().equals(Vector2D.ZERO);
 
         boolean isOnGround = currPlayer.isOnGround();
         boolean wasOnGround = prevPlayer.isOnGround();
@@ -86,13 +81,20 @@ public class Speedrunner {
                 groundtime++;
             else
                 groundtime = 0;
+        }
 
+        Player pprevPlayer = prevPlayer.getPrevious();
+        if (pprevPlayer == null) return;
+
+        boolean wasWasOnGround = pprevPlayer.isOnGround();
+
+        if (wasOnGround) {
             if (isMoving) {
                 if (wasMoving)
                     runTicks++;
-                if (!wasOnGround || !wasMoving)
+                if (!wasWasOnGround || !wasMoving)
                     runTicks = 0;
-            } else if (wasOnGround && wasMoving) {
+            } else if (wasWasOnGround && wasMoving) {
                 runTicks++;
             }
         }

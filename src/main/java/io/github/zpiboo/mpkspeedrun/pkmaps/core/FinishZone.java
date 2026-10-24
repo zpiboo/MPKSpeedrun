@@ -9,11 +9,11 @@ public class FinishZone extends TriggerZone {
     private long lastLandTick = -1;
 
     @Override
-    public boolean tick(Player p, Speedrunner s) {
+    public void tick(Player p, Speedrunner s) {
         if (p.landTick)
             lastLandTick = API.tickTime;
 
-        return super.tick(p, s);
+        super.tick(p, s);
     }
 
     @Override

@@ -8,7 +8,6 @@ import io.github.zpiboo.mpkspeedrun.MPKSpeedrun;
 import io.github.zpiboo.mpkspeedrun.Speedrunner;
 import io.github.zpiboo.mpkspeedrun.util.api_compat.BoundingBox3DUtil;
 import io.github.zpiboo.mpkspeedrun.util.api_compat.PlayerUtil;
-import io.github.zpiboo.mpkspeedrun.util.api_compat.Vector3DUtil;
 import io.github.zpiboo.mpkspeedrun.util.misc.ChoiceEnum;
 import org.json.JSONObject;
 
@@ -18,6 +17,7 @@ public class TriggerZone {
     private TriggerMode triggerMode;
     private PosMode posMode;
     private boolean useLandingPos;
+    private boolean countTriggerTick;
 
     private boolean didTrigger = false;
     protected final TriggerData lastTrigger = new TriggerData();
@@ -36,6 +36,7 @@ public class TriggerZone {
         this.triggerMode = triggerMode;
         this.posMode = posMode;
         this.useLandingPos = useLandingPos;
+        this.countTriggerTick = countTriggerTickDefault();
     }
     public TriggerZone() {
         this(BoundingBox3D.ZERO, TriggerMode.ENTER, PosMode.POS, false);
@@ -74,6 +75,19 @@ public class TriggerZone {
         this.useLandingPos = useLandingPos;
     }
 
+    @InfoString.Getter
+    public boolean countTriggerTick() {
+        return countTriggerTick;
+    }
+    public void setCountTriggerTick(boolean countTriggerTick) {
+        this.countTriggerTick = countTriggerTick;
+    }
+
+    public boolean countTriggerTickDefault() {
+        return false;
+    }
+
+
     public boolean didTrigger() {
         return didTrigger;
     }
@@ -95,25 +109,45 @@ public class TriggerZone {
     }
 
     private double calculateSubtick(Player p) {
-        // TODO: Implement subtick calculation for BOX position mode
-        if (posMode != PosMode.POS) return 0.0D;
+        switch (posMode) {
+            case POS:
+                Vector3D lastPos = getAdaptedPos(p.getPrevious());
+                Vector3D currPos = getAdaptedPos(p);
+                switch (triggerMode) {
+                    case ENTER:
+                        return BoundingBox3DUtil.posSubtick(
+                                lastPos,
+                                currPos,
+                                this.getBox()
+                        );
+                    case EXIT:
+                        return 1.0D - BoundingBox3DUtil.posSubtick(
+                                currPos,
+                                lastPos,
+                                this.getBox()
+                        );
 
-        Vector3D lastPos = getAdaptedPos(p.getPrevious());
-        Vector3D currPos = getAdaptedPos(p);
+                    default: break;
+                }
+            case BOX:
+                BoundingBox3D lastBB = getAdaptedBB(p.getPrevious());
+                BoundingBox3D currBB = getAdaptedBB(p);
+                switch (triggerMode) {
+                    case ENTER:
+                        return BoundingBox3DUtil.boxSubtick(
+                                lastBB,
+                                currBB,
+                                this.getBox()
+                        );
+                    case EXIT:
+                        return 1.0D - BoundingBox3DUtil.boxSubtick(
+                                currBB,
+                                lastBB,
+                                this.getBox()
+                        );
 
-        switch (triggerMode) {
-            case ENTER:
-                return BoundingBox3DUtil.slabMethod(
-                        lastPos,
-                        currPos,
-                        this.getBox()
-                );
-            case EXIT:
-                return 1.0D - BoundingBox3DUtil.slabMethod(
-                        currPos,
-                        lastPos,
-                        this.getBox()
-                );
+                    default: break;
+                }
 
             default: return 0.0D;
         }
@@ -148,41 +182,25 @@ public class TriggerZone {
         }
     }
 
-    public boolean tick(Player p, Speedrunner s) {
+    public void tick(Player p, Speedrunner s) {
         didTrigger = shouldTrigger(p);
 
         if (didTrigger)
             onTrigger(p, s);
-
-        return didTrigger;
     }
 
     protected void onTrigger(Player p, Speedrunner s) {
         s.setLastTrigger(this.lastTrigger);
 
-        lastTrigger.setSubtick(calculateSubtick(p));
+        double subtick = calculateSubtick(p);
+        lastTrigger.setSubtick(subtick);
 
-        double currOffset = calculateOffset(p);
-        double prevOffset = calculateOffset(p.getPrevious());
-        lastTrigger.setMadeByOffset(currOffset);
-        lastTrigger.setMissedByOffset(prevOffset);
-    }
+        Vector3D lastPos = getAdaptedPos(p.getPrevious());
+        Vector3D currPos = getAdaptedPos(p);
+        double totalDistance = currPos.sub(lastPos).lengthXZ();
 
-    protected double calculateOffset(Player p) {
-        BoundingBox3D bb;
-        switch (getPosMode()) {
-            case BOX:
-                bb = getAdaptedBB(p);
-                break;
-
-            case POS:
-            default:
-                Vector3D pos = getAdaptedPos(p);
-                bb = new BoundingBox3D(pos, pos);
-                break;
-        }
-        Vector3D offset3d = getBox().distanceTo(bb).mult(-1);
-        return Vector3DUtil.xzOffset(offset3d);
+        lastTrigger.setMadeByOffset(totalDistance * (1 - subtick));
+        lastTrigger.setMissedByOffset(totalDistance * subtick);
     }
 
 
@@ -191,6 +209,7 @@ public class TriggerZone {
                 .put("trigger_on", triggerMode.toString())
                 .put("pos_mode", posMode.toString())
                 .put("use_landing_pos", useLandingPos)
+                .put("count_trigger_tick", countTriggerTick)
 
                 .put("minx", box.minX())
                 .put("miny", box.minY())
@@ -208,16 +227,8 @@ public class TriggerZone {
     }
 
     protected void applyJson(JSONObject boxJson) {
-        String legacyModeString = boxJson.optString("mode");  // TODO: remove this for the first release (v1.0.0!!!) (after beta test)
-
         String triggerModeString = boxJson.optString("trigger_on");
         String posModeString = boxJson.optString("pos_mode");
-
-        String[] modes = legacyModeString.split("_");
-        if (!legacyModeString.isEmpty() && modes.length == 2) {
-            triggerModeString = modes[1];
-            posModeString = modes[0];
-        }
 
         TriggerMode triggerMode;
         PosMode posMode;
@@ -236,6 +247,7 @@ public class TriggerZone {
         }
 
         boolean useLandingPos = boxJson.optBoolean("use_landing_pos", false);
+        boolean countTriggerTick = boxJson.optBoolean("count_trigger_tick", countTriggerTickDefault());
 
         double minX = boxJson.optDouble("minx", 0);
         double minY = boxJson.optDouble("miny", 0);
@@ -253,6 +265,7 @@ public class TriggerZone {
         this.setTriggerMode(triggerMode);
         this.setPosMode(posMode);
         this.setUsingLandingPos(useLandingPos);
+        this.setCountTriggerTick(countTriggerTick);
     }
 
     protected enum TriggerState {

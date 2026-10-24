@@ -26,8 +26,6 @@ public class PkMap implements Comparable<PkMap> {
     private StartZone start;
     private FinishZone finish;
 
-    private int startTime = 1;
-
     public PkMap(String name, StartZone start, FinishZone finish, UUID uuid) {
         if (uuid == null)
             this.uuid = UUID.randomUUID();
@@ -80,8 +78,7 @@ public class PkMap implements Comparable<PkMap> {
                 .put("uuid", uuid)
                 .put("name", name)
                 .put("start", start != null ? start.toJson() : new JSONObject())
-                .put("finish", finish != null ? finish.toJson() : new JSONObject())
-                .put("start_time", startTime);
+                .put("finish", finish != null ? finish.toJson() : new JSONObject());
     }
     public static PkMap fromJson(JSONObject mapJson) {
         String name = mapJson.optString("name", DEFAULT_NAME);
@@ -96,19 +93,9 @@ public class PkMap implements Comparable<PkMap> {
 
         StartZone start = StartZone.fromJson( mapJson.optJSONObject("start") );
         FinishZone finish = FinishZone.fromJson( mapJson.optJSONObject("finish") );
-        int startTime = mapJson.optInt("start_time", 1);
 
         final PkMap loadedMap = new PkMap(name, start, finish, uuid);
-        loadedMap.setStartTime(startTime);
-
         return loadedMap;
-    }
-
-    public int getStartTime() {
-        return startTime;
-    }
-    public void setStartTime(int startTime) {
-        this.startTime = startTime;
     }
 
     @Override
@@ -117,10 +104,6 @@ public class PkMap implements Comparable<PkMap> {
         return nameCmp == 0
                 ? this.uuid.compareTo(other.uuid)
                 : nameCmp;
-    }
-
-    public boolean equals(PkMap other) {
-        return this.uuid.equals(other.uuid);
     }
 
     private ConfigPane createConfigPane(ComponentHolder parent) {
@@ -143,9 +126,11 @@ public class PkMap implements Comparable<PkMap> {
             timedTick(p, s);
 
         if (start.didTrigger()) {
-            timer.setTimeInTicks(getStartTime());
+            timer.reset();
             timer.setSubtick(-start.getLastTrigger().getSubtick());
             timer.setEnabled(true);
+
+            if (start.countTriggerTick()) timer.increment();
         }
     }
 
@@ -154,6 +139,8 @@ public class PkMap implements Comparable<PkMap> {
         Timer timer = s.getTimer();
 
         if (finish.didTrigger()) {
+            if (finish.countTriggerTick()) timer.increment();
+
             timer.setEnabled(false);
             timer.setSubtick(timer.getSubtick() + finish.getLastTrigger().getSubtick());
         } else {
@@ -177,6 +164,5 @@ public class PkMap implements Comparable<PkMap> {
         @Override public void setName(String name) {}
         @Override public void setStart(StartZone start) {}
         @Override public void setFinish(FinishZone finish) {}
-        @Override public void setStartTime(int startTime) {}
     }
 }

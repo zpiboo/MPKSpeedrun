@@ -25,6 +25,7 @@ public class TriggerZoneEditor extends Div {
     private final ChoiceButton<TriggerZone.TriggerMode> triggerModeChoice;
     private final ChoiceButton<TriggerZone.PosMode> posModeChoice;
     private final CheckButton landingPosCheckbox;
+    private final CheckButton countTickCheckbox;
 
     public TriggerZoneEditor(TriggerZone triggerZone, String label, Vector2D pos, double width) {
         this.triggerZone = triggerZone;
@@ -73,6 +74,9 @@ public class TriggerZoneEditor extends Div {
         landingPosCheckbox = new CheckButton(new Vector2D(0, heightUpToHere));
         landingPosCheckbox.setChecked(triggerZone.isUsingLandingPos());
         addChild(landingPosCheckbox, PERCENT.NONE, Anchor.TOP_LEFT);
+        countTickCheckbox = new CheckButton(new Vector2D(0.52D, heightUpToHere));
+        countTickCheckbox.setChecked(triggerZone.countTriggerTick());
+        addChild(countTickCheckbox, PERCENT.POS_X, Anchor.TOP_LEFT);
 
         heightUpToHere += landingPosCheckbox.getDisplayedSize().getY();
         setPos(pos);
@@ -94,8 +98,17 @@ public class TriggerZoneEditor extends Div {
         FontRenderer.drawString(
                 "Use Landing Position",
                 new Vector2D(
-                        getDisplayedPos().getX() + 16,
+                        landingPosCheckbox.getDisplayedPos().getX() + 16,
                         landingPosCheckbox.getDisplayedPos().getY() + 2
+                ),
+                Color.WHITE,
+                false
+        );
+        FontRenderer.drawString(
+                "Count This Tick",
+                new Vector2D(
+                        countTickCheckbox.getDisplayedPos().getX() + 16,
+                        countTickCheckbox.getDisplayedPos().getY() + 2
                 ),
                 Color.WHITE,
                 false
@@ -107,5 +120,6 @@ public class TriggerZoneEditor extends Div {
         triggerZone.setTriggerMode(triggerModeChoice.getCurrent());
         triggerZone.setPosMode(posModeChoice.getCurrent());
         triggerZone.setUsingLandingPos(landingPosCheckbox.isChecked());
+        triggerZone.setCountTriggerTick(countTickCheckbox.isChecked());
     }
 }
