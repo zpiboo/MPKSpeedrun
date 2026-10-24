@@ -88,6 +88,7 @@ If you're curious, you can check [actions](https://github.com/Zpiboo/MPKSpeedrun
 - Dynamic maps (automatic per-server config, for instance on hollowcube we would make it set the end box to the gold pressure plate)
 - Ladder utilities (airtime)
 - Spherical zones for start/finish (center + radius)
+- Ceiling detection
 
 ## Support
 If you find a bug or want to request a new feature, feel free to [create an issue](https://github.com/Zpiboo/MPKSpeedrun/issues)
